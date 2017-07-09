@@ -7,7 +7,6 @@ package com.example.demo;
 
 import com.vaadin.data.Binder;
 import com.vaadin.data.ValidationException;
-import com.vaadin.data.provider.DataProvider;
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.shared.ui.ValueChangeMode;
 import com.vaadin.spring.annotation.SpringComponent;
@@ -18,15 +17,13 @@ import com.vaadin.ui.Grid;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.TextField;
+import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.components.grid.HeaderCell;
 import com.vaadin.ui.components.grid.HeaderRow;
 import com.vaadin.ui.themes.ValoTheme;
-import java.util.Arrays;
 import java.util.List;
-import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 /**
  *
@@ -35,7 +32,7 @@ import org.springframework.data.domain.Pageable;
 @UIScope
 @SpringComponent
 
-public class StudentGridView extends HorizontalLayout {
+public class StudentGridView extends VerticalLayout {
 
     private FormLayout form;
     private TextField name;
@@ -45,29 +42,18 @@ public class StudentGridView extends HorizontalLayout {
     private Student student;
     private Grid<Student> grid;
     private List<Student> list;
-    
 
     private Binder<Student> binder;
 
     @Autowired(required = true)
     private StudentRepo studentRepo;
 
-    
-
     public StudentGridView() {
         grid = new Grid<>();
+        getGridData();
         name = new TextField("Name :");
         email = new TextField();
-        
-        
-        grid.setDataProvider(
-        
-                (sortOrders, offset, limit) ->
-                        
-            studentRepo.findAll(new PageRequest(offset/limit, limit)).getContent().stream(),
-                
-            () -> (int)studentRepo.count()
-        );
+
 //      DataProvider<Student, Void> dataProvider= DataProvider.fromCallbacks(
 //                
 //                query -> {
@@ -85,7 +71,6 @@ public class StudentGridView extends HorizontalLayout {
 //                );
 //        
 //        grid.setDataProvider(dataProvider);
-
         student = new Student();
         binder = new Binder<>(Student.class);
         binder.bindInstanceFields(this);
@@ -121,6 +106,7 @@ public class StudentGridView extends HorizontalLayout {
 
             studentRepo.save(student);
             clear();
+            getGridData();
 
         });
 
@@ -169,7 +155,18 @@ public class StudentGridView extends HorizontalLayout {
 
         });
 
-        addComponents(grid, form);
+        Button uploadbasic = new Button("Go to Basic Upload");
+        uploadbasic.addClickListener(e -> {
+            removeAllComponents();
+            addComponents(new UploadExample("baic"));
+        });
+        Button uploadadvance = new Button("Go to Advanced Upload");
+        uploadadvance.addClickListener(e -> {
+            removeAllComponents();
+            addComponents(new UploadExample("advanced"));
+        });
+
+        addComponents(grid, form, uploadbasic, uploadadvance);
         setSizeFull();
 
     }
@@ -181,4 +178,11 @@ public class StudentGridView extends HorizontalLayout {
 
     }
 
+    void getGridData() {
+        grid.setDataProvider(
+                (sortOrders, offset, limit)
+                -> studentRepo.findAll(new PageRequest(offset / limit, limit)).getContent().stream(),
+                () -> Integer.parseInt(studentRepo.count() + "")
+        );
+    }
 }
