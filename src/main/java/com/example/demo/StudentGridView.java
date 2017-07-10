@@ -10,6 +10,7 @@ import com.vaadin.data.ValidationException;
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.shared.ui.ValueChangeMode;
 import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringUI;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.FormLayout;
@@ -24,13 +25,11 @@ import com.vaadin.ui.themes.ValoTheme;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.util.StringUtils;
 
-/**
- *
- * @author Chaudhary
- */
 @UIScope
 @SpringComponent
+@SpringUI
 
 public class StudentGridView extends VerticalLayout {
 
@@ -152,6 +151,7 @@ public class StudentGridView extends VerticalLayout {
         filter.setPlaceholder("Filter name...");
         filternamecell.setComponent(filter);
         filter.addValueChangeListener(e -> {
+            listStudent(e.getValue());
 
         });
 
@@ -185,4 +185,14 @@ public class StudentGridView extends VerticalLayout {
                 () -> Integer.parseInt(studentRepo.count() + "")
         );
     }
+
+    ////Method to filter Data on filtering textfield change value..
+    void listStudent(String filterText) {
+        if (StringUtils.isEmpty(filterText)) {
+            grid.setItems(studentRepo.findAll());
+        } else {
+            grid.setItems(studentRepo.findByNameStartsWithIgnoreCase(filterText));
+        }
+    }
+
 }
