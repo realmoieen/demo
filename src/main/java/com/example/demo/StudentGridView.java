@@ -22,7 +22,22 @@ import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.components.grid.HeaderCell;
 import com.vaadin.ui.components.grid.HeaderRow;
 import com.vaadin.ui.themes.ValoTheme;
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import net.sf.jasperreports.engine.JRDataSource;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.util.StringUtils;
@@ -43,15 +58,21 @@ public class StudentGridView extends VerticalLayout {
     private List<Student> list;
 
     private Binder<Student> binder;
+    
+    
 
-    @Autowired(required = true)
+
+    @Autowired
     private StudentRepo studentRepo;
-
+    
     public StudentGridView() {
         grid = new Grid<>();
         getGridData();
         name = new TextField("Name :");
         email = new TextField();
+        
+        
+        
 
 //      DataProvider<Student, Void> dataProvider= DataProvider.fromCallbacks(
 //                
@@ -154,19 +175,26 @@ public class StudentGridView extends VerticalLayout {
             listStudent(e.getValue());
 
         });
-
+        ///Upload file session...
+        
         Button uploadbasic = new Button("Go to Basic Upload");
         uploadbasic.addClickListener(e -> {
             removeAllComponents();
-            addComponents(new UploadExample("baic"));
+            addComponents(new UploadExample("basic"));
         });
         Button uploadadvance = new Button("Go to Advanced Upload");
         uploadadvance.addClickListener(e -> {
             removeAllComponents();
             addComponents(new UploadExample("advanced"));
         });
+        ////upload session end...
+        Button b=new Button("Generate Report");
+         b.addClickListener((event) -> {
+        getJasperPrint();
+        });
+        
 
-        addComponents(grid, form, uploadbasic, uploadadvance);
+        addComponents(new HorizontalLayout(grid,form),new HorizontalLayout( b, uploadbasic, uploadadvance));
         setSizeFull();
 
     }
@@ -181,7 +209,7 @@ public class StudentGridView extends VerticalLayout {
     void getGridData() {
         grid.setDataProvider(
                 (sortOrders, offset, limit)
-                -> studentRepo.findAll(new PageRequest(offset / limit, limit)).getContent().stream(),
+                -> studentRepo.findAll(new PageRequest(offset/limit, limit)).getContent().stream(),
                 () -> Integer.parseInt(studentRepo.count() + "")
         );
     }
@@ -195,4 +223,45 @@ public class StudentGridView extends VerticalLayout {
         }
     }
 
+    
+    ////Method which generates pdf report file of student 
+    private List<Map<String, ?>> datasource= new ArrayList<>(); 
+    
+    private String sourcefile = "studentreport.jrxml";
+    private JRDataSource jRDataSource;
+    private JasperReport report;
+    private JasperPrint filledreport;
+    private byte[] bytes;
+    
+    public void getJasperPrint() {
+        for (Student student : studentRepo.findAll()) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", student.getId());
+            m.put("name", student.getName());
+            m.put("email", student.getEmail());
+            datasource.add(m);
+        }
+        jRDataSource = new JRBeanCollectionDataSource(datasource);
+        try {
+            report = JasperCompileManager.compileReport(sourcefile);
+            filledreport = JasperFillManager.fillReport(report, null, jRDataSource);
+            bytes=JasperExportManager.exportReportToPdf(filledreport);
+           
+            try (OutputStream out = new BufferedOutputStream(new FileOutputStream("D:\\upload.pdf",false),1024)) {
+            // write a byte sequence
+            out.write(bytes);
+        } catch (IOException e) {
+            Notification.show(e.getMessage(),Notification.Type.WARNING_MESSAGE);
+        }
+          
+            
+        } catch (JRException e) {
+            Notification.show(e.getMessage());
+        }
+
+        
+    }
+    
+    
+    
 }

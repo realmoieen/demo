@@ -16,4 +16,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface StudentRepo extends JpaRepository<Student, Long>{
     List<Student> findByNameStartsWithIgnoreCase(String name);
+    
+    List<Student> findByEmailIgnoreCase(String email);
 }
